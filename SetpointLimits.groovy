@@ -59,12 +59,12 @@ def updated() {
     initialize()
 }
 
-def initialize() {
+def initialize() {    
     subscribe(thermostatDevices, "coolingSetpoint", onCoolingSetpointChanged)
     subscribe(thermostatDevices, "heatingSetpoint", onHeatingSetpointChanged)
     for(thermostat in thermostatDevices)
     {
-        log.debug("Cooling set point for ${thermostat.displayName} is currently ${thermostat.currentCoolingSetpoint}");
+    	log.debug("Cooling set point for ${thermostat.displayName} is currently ${thermostat.currentCoolingSetpoint}");
         log.debug("Heating set point for ${thermostat.displayName} is currently ${thermostat.currentHeatingSetpoint}");
     }
     runEvery5Minutes(ensureSetpointLimits)
@@ -73,10 +73,24 @@ def initialize() {
 def ensureSetpointLimits(evt)
 {
     log.debug("Checking set point limits")
-    for(thermostat in thermostatDevices)
+	for(thermostat in thermostatDevices)
     {
-        ensureCoolingSetpointLimit(thermostat, thermostat.currentCoolingSetpoint.toInteger())
-        ensureHeatingSetpointLimit(thermostat, thermostat.currentHeatingSetpoint.toInteger())
+    	if(thermostat.currentCoolingSetpoint != null)
+        {
+    		ensureCoolingSetpointLimit(thermostat, thermostat.currentCoolingSetpoint.toInteger())
+        }
+        else
+        {
+        	log.debug("Current cooling set point is not available for ${thermostat.displayName}")
+        }
+        if(thermostat.currentHeatingSetpoint != null)
+        {
+        	ensureHeatingSetpointLimit(thermostat, thermostat.currentHeatingSetpoint.toInteger())
+        }
+        else
+        {
+        	log.debug("Current heating set point is not available for ${thermostat.displayName}")
+        }
     }
 }
 
@@ -84,16 +98,16 @@ def ensureCoolingSetpointLimit(device, Integer current)
 {
     if(current < coolingLimit.toInteger())
     {
-        log.debug("Cooling limit exceeded on ${device.displayName} (${current}). Cooling set point will be set to ${coolingLimit}.")
+    	log.debug("Cooling limit exceeded on ${device.displayName} (${current}). Cooling set point will be set to ${coolingLimit}.")
         device.setCoolingSetpoint(coolingLimit.toInteger())
     }
 }
 
 def ensureHeatingSetpointLimit(device, Integer current)
 {
-    if(current < heatingLimit.toInteger())
+    if(current > heatingLimit.toInteger())
     {
-        log.debug("Heating limit exceeded on ${device.displayName} (${current}). Heating set point will be set to ${heatingLimit}.")
+    	log.debug("Heating limit exceeded on ${device.displayName} (${current}). Heating set point will be set to ${heatingLimit}.")
         device.setHeatingSetpoint(heatingLimit.toInteger())
     }
 }
@@ -103,7 +117,7 @@ def onCoolingSetpointChanged(evt)
     log.debug("Cooling point changed on ${evt.device.displayName} to ${evt.value} and cooling limit is ${coolingLimit}.")
     if(evt.value.toInteger() < coolingLimit.toInteger())
     {
-        log.debug("Cooling limit exceeded on ${evt.device.displayName}. Cooling set point will be set to ${coolingLimit}.")
+    	log.debug("Cooling limit exceeded on ${evt.device.displayName}. Cooling set point will be set to ${coolingLimit}.")
         evt.device.setCoolingSetpoint(coolingLimit.toInteger(), delay: 3000)
         sendNotification(evt)
     }
@@ -114,7 +128,7 @@ def onHeatingSetpointChanged(evt)
     log.debug("Heating point changed on ${evt.device.displayName} to ${evt.value} and heating limit is ${heatingLimit}.")
     if(evt.value.toInteger() > heatingLimit.toInteger())
     {
-        log.debug("Heating limit exceeded on ${evt.device.displayName}. Heating set point will be set to ${heatingLimit}.")
+    	log.debug("Heating limit exceeded on ${evt.device.displayName}. Heating set point will be set to ${heatingLimit}.")
         evt.device.setHeatingSetpoint(heatingLimit.toInteger(), delay: 3000)
         sendNotification(evt)
     }
@@ -137,11 +151,11 @@ private sendMessage(evt) {
     def msg;
     if(evt.name == "coolingSetpoint")
     {
-        msg = coolingLimitMessageText ?: "Cooling set point of ${evt.value} exceeded cooling limit of ${coolingLimit} on ${evt.device.displayName}"
+    	msg = coolingLimitMessageText ?: "Cooling set point of ${evt.value} exceeded cooling limit of ${coolingLimit} on ${evt.device.displayName}"
     }
     if(evt.name == "heatingSetpoint")
     {
-        msg = heatingLimitMessageText ?: "Heating set point of ${evt.value} exceeded heating limit of ${heatingLimit} on ${evt.device.displayName}"
+    	msg = heatingLimitMessageText ?: "Heating set point of ${evt.value} exceeded heating limit of ${heatingLimit} on ${evt.device.displayName}" 
     }
     log.debug "$evt.name:$evt.value, pushAndPhone:$pushAndPhone, '$msg'"
 
